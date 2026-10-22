@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aromazon - Shop Floor Atelier</title>
+    <!-- Importation de Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #0099ff;
+            --primary-dark: #007acc;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --purple: #7c3aed;
+            --bg-glass: rgba(255, 255, 255, 0.92);
+            --text: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            /* Utilisation de l'image de fond stockée sur Supabase */
+            background: url('https://ayiepeavxctpisbpaffy.supabase.co/storage/v1/object/public/images/fond.jpeg') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            padding: 2rem;
+            text-align: center;
+            display: none;
+        }
+
+        .container.active {
+            display: block;
+        }
+
+        /* Accueil */
+        .welcome-logo {
+            max-width: 280px;
+            margin-bottom: 2rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .welcome-logo:hover { transform: scale(1.03); }
+
+        h1, h2 { margin-bottom: 1.5rem; color: #0f172a; }
+
+        /* Boutons et grilles */
+        .grid-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-tile {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .btn-tile:hover { background: var(--primary-dark); transform: translateY(-2px); }
+
+        .machine-capsule {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .machine-capsule:hover { background: #eff6ff; }
+        .machine-name { font-weight: 700; font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 0.5rem; }
+        .machine-status { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 0.25rem 0.5rem; border-radius: 20px; display: inline-block; }
+        .status-prod { background: #dcfce7; color: var(--success); }
+        .status-stop { background: #fee2e2; color: var(--danger); }
+        .status-setup { background: #fef9c3; color: var(--warning); }
+
+        /* Formulaires & Inputs */
+        .form-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+        label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+        .input-group-prefix {
+            display: flex;
+            align-items: center;
+        }
+        .input-group-prefix span {
+            background: #e2e8f0;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            font-weight: 700;
+        }
+        .input-group-prefix input {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        /* Boutons d'action principaux */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .btn-action {
+            padding: 1.25rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-play { background: var(--success); }
+        .btn-pause { background: var(--warning); grid-column: span 2; }
+        .btn-stop { background: var(--danger); }
+        .btn-home { background: var(--purple); grid-column: span 2; }
+
+        .toast-banner {
+            position: fixed;
+            top: 20px;
+            background: #0f172a;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: 600;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast-banner" id="toast">Notification</div>
+
+    <!-- 1. ÉCRAN ACCUEIL / LOGO -->
+    <div id="screen-welcome" class="container active">
+        <img src="aromazon.png" alt="Aromazon Logo" class="welcome-logo" onclick="goToOperators()">
+        <p style="color: #64748b; font-weight: 600; margin-top: -1rem;">Touchez le logo pour ouvrir le Shop Floor</p>
+    </div>
+
+    <!-- 2. SÉLECTION OPÉRATEUR -->
+    <div id="screen-operator" class="container">
+        <h2>Sélection de l'Opérateur</h2>
+        <div class="grid-options" id="operators-grid">
+            <!-- Chargé dynamiquement -->
+        </div>
+    </div>
+
+    <!-- 3. SÉLECTION MACHINE -->
+    <div id="screen-machines" class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <span id="logged-operator-badge" style="font-weight: 700; color: var(--primary-dark);">👤 -</span>
+            <button onclick="goToOperators()" style="background: none; border: none; color: #64748b; cursor: pointer; font-weight: 600;">Changer</button>
+        </div>
+        <h2>Sélection du Poste</h2>
+        <div class="grid-options" id="machines-grid">
+            <!-- Chargé dynamiquement -->
+        </div>
+    </div>
+
+    <!-- 4. PRÉPARATION DE LA SÉRIE (OF & ÉQUIPE) -->
+    <div id="screen-prep" class="container">
+        <h2 id="prep-machine-title">Préparation de la Série</h2>
+        <div class="form-group">
+            <label>Numéro d'OF</label>
+            <div class="input-group-prefix">
+                <span>MO/</span>
+                <input type="text" id="of-number-input" placeholder="ex: 12345">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Quantité Cible (Pièces)</label>
+            <input type="number" id="target-qty-input" placeholder="ex: 2000">
+        </div>
+        <div class="form-group">
+            <label>Composition de l'équipe (Binôme / Trio)</label>
+            <div id="team-checkboxes" style="text-align: left; background: white; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+                <!-- Coochages équipe -->
+            </div>
+        </div>
+        <button class="btn-tile" style="width: 100%; margin-top: 1rem;" onclick="startSeries()">Préparer la série & Démarrer</button>
+    </div>
+
+    <!-- 5. PANNEAU DE PILOTAGE (PROD / PAUSE / STOP) -->
+    <div id="screen-pilot" class="container">
+        <h2 id="pilot-machine-title">Poste en cours</h2>
+        <div style="background: #f1f5f9; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left;">
+            <p><strong>OF :</strong> <span id="display-of">-</span></p>
+            <p><strong>Équipe :</strong> <span id="display-team">-</span></p>
+            <p><strong>Cible :</strong> <span id="display-target">-</span> pcs</p>
+            <p style="margin-top: 0.5rem; font-size: 1.1rem; font-weight: bold; color: var(--success);" id="display-status-text">STATUT : EN ATTENTE</p>
+        </div>
+
+        <div class="action-grid">
+            <button class="btn-action btn-play" onclick="triggerPlay()">▶️ Démarrer / Reprendre</button>
+            <button class="btn-action btn-pause" onclick="triggerPauseModal()">⏸️ Déclarer une Pause / Arrêt</button>
+            <button class="btn-action btn-stop" onclick="triggerStop()">⏹️ Fin de Remplissage (Stop)</button>
+            <button class="btn-action btn-home" onclick="goToWelcome()">🏠 Fin de Journée</button>
+        </div>
+    </div>
+
+    <!-- 6. MODAL SÉLECTION MOTIF D'ARRÊT -->
+    <div id="screen-downtime" class="container">
+        <h2>Sélection du Motif d'Arrêt</h2>
+        <div class="grid-options" id="downtime-reasons-grid">
+            <!-- Chargé dynamiquement -->
+        </div>
+        <button class="btn-tile" style="background: #64748b; width: 100%;" onclick="closeDowntimeModal()">Retour Production</button>
+    </div>
+
+    <!-- 7. MODE CONDITIONNEMENT & BILAN DE FIN DE LOT -->
+    <div id="screen-bilan" class="container">
+        <h2>Bilan de Fin de Lot</h2>
+        <p style="color: #64748b; margin-bottom: 1rem;">Conditionnement terminé, veuillez saisir le bilan :</p>
+        
+        <div class="form-group">
+            <label>Flacons Conformes Produits (Bonnes pièces)</label>
+            <input type="number" id="bilan-good" value="0">
+        </div>
+        <div class="form-group">
+            <label>Rebuts de Bouteilles</label>
+            <input type="number" id="bilan-bad-bottles" value="0">
+        </div>
+        <div class="form-group">
+            <label>Rebuts de Bouchons</label>
+            <input type="number" id="bilan-bad-caps" value="0">
+        </div>
+        <div class="form-group">
+            <label>Remarques / Observations (Champ libre)</label>
+            <textarea id="bilan-remarks" rows="3" placeholder="Ex: Ralentissement dû à..."></textarea>
+        </div>
+
+        <button class="btn-tile" style="width: 100%; background: var(--success);" onclick="submitBilan()">Valider et Enregistrer le Bilan</button>
+    </div>
+
+    <!-- Script de Connexion Supabase & Logique App -->
+    <script>
+        // Initialisation Supabase
+        const SUPABASE_URL = "https://ayiepeavxctpisbpaffy.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_The404K1hKcFGy52DCU6Qw_78Ympixm";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Variables d'état globales
+        let currentOperator = null;
+        let selectedMachine = null;
+        let activeSession = {
+            of: "",
+            target: 0,
+            team: [],
+            startTime: null,
+            fillingStart: null,
+            conditioningStart: null,
+            downtimeSeconds: 0
+        };
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function goToWelcome() { showScreen('screen-welcome'); }
+
+        async function goToOperators() {
+            showScreen('screen-operator');
+            const { data, error } = await _supabase.from('operators').select('*').eq('active', true);
+            const grid = document.getElementById('operators-grid');
+            grid.innerHTML = '';
+            if(data) {
+                data.forEach(op => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-tile';
+                    btn.innerText = op.name;
+                    btn.onclick = () => selectOperator(op);
+                    grid.appendChild(btn);
+                });
+            }
+        }
+
+        function selectOperator(op) {
+            currentOperator = op;
+            showToast(`Bonjour ${op.name} !`);
+            document.getElementById('logged-operator-badge').innerText = `👤 ${op.name}`;
+            loadMachines();
+        }
+
+        async function loadMachines() {
+            showScreen('screen-machines');
+            const { data, error } = await _supabase.from('machines').select('*');
+            const grid = document.getElementById('machines-grid');
+            grid.innerHTML = '';
+            if(data) {
+                data.forEach(mach => {
+                    const capsule = document.createElement('div');
+                    capsule.className = 'machine-capsule';
+                    let statusClass = 'status-stop';
+                    let statusText = 'Arrêtée';
+                    if(mach.status === 'production') { statusClass = 'status-prod'; statusText = 'En Prod'; }
+                    if(mach.status === 'setup') { statusClass = 'status-setup'; statusText = 'Réglage'; }
+
+                    capsule.innerHTML = `
+                        <div class="machine-name">${mach.name}</div>
+                        <span class="machine-status ${statusClass}">${statusText}</span>
+                    `;
+                    capsule.onclick = () => selectMachinePost(mach);
+                    grid.appendChild(capsule);
+                });
+            }
+        }
+
+        async function selectMachinePost(mach) {
+            selectedMachine = mach;
+            document.getElementById('prep-machine-title').innerText = `Poste : ${mach.name}`;
+            
+            // Charger la liste des opérateurs pour l'équipe
+            const { data } = await _supabase.from('operators').select('*').eq('active', true);
+            const teamContainer = document.getElementById('team-checkboxes');
+            teamContainer.innerHTML = '';
+            if(data) {
+                data.forEach(op => {
+                    const label = document.createElement('label');
+                    label.className = 'checkbox-group';
+                    label.innerHTML = `<input type="checkbox" value="${op.name}" ${op.id === currentOperator.id ? 'checked' : ''}> ${op.name}`;
+                    teamContainer.appendChild(label);
+                });
+            }
+            showScreen('screen-prep');
+        }
+
+        function startSeries() {
+            const ofNum = document.getElementById('of-number-input').value;
+            const targetQty = document.getElementById('target-qty-input').value;
+            
+            if(!ofNum || !targetQty) {
+                alert("Veuillez renseigner le numéro d'OF et la quantité cible.");
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('#team-checkboxes input:checked');
+            let teamArr = [];
+            checkboxes.forEach(cb => teamArr.push(cb.value));
+
+            activeSession.of = "MO/" + ofNum;
+            activeSession.target = targetQty;
+            activeSession.team = teamArr;
+
+            document.getElementById('pilot-machine-title').innerText = `Poste : ${selectedMachine.name}`;
+            document.getElementById('display-of').innerText = activeSession.of;
+            document.getElementById('display-team').innerText = activeSession.team.join(', ');
+            document.getElementById('display-target').innerText = activeSession.target;
+            
+            showScreen('screen-pilot');
+        }
+
+        async function triggerPlay() {
+            activeSession.fillingStart = new Date();
+            document.getElementById('display-status-text').innerText = "STATUT : EN REMPLISSAGE (PROD)";
+            document.getElementById('display-status-text').style.color = "var(--success)";
+            
+            await _supabase.from('machines').update({ status: 'production', current_of: activeSession.of }).eq('id', selectedMachine.id);
+            showToast("Production démarrée !");
+        }
+
+        async function triggerPauseModal() {
+            showScreen('screen-downtime');
+            const { data } = await _supabase.from('downtime_reasons').select('*').eq('active', true);
+            const grid = document.getElementById('downtime-reasons-grid');
+            grid.innerHTML = '';
+            if(data) {
+                data.forEach(r => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-tile';
+                    btn.style.background = 'var(--warning)';
+                    btn.innerText = r.label;
+                    btn.onclick = () => selectDowntimeReason(r);
+                    grid.appendChild(btn);
+                });
+            }
+        }
+
+        async function selectDowntimeReason(reason) {
+            await _supabase.from('downtime_logs').insert({
+                machine_id: selectedMachine.id,
+                operator_id: currentOperator.id,
+                reason_id: reason.id
+            });
+            await _supabase.from('machines').update({ status: 'setup' }).eq('id', selectedMachine.id);
+            showToast(`Arrêt déclaré : ${reason.label}`);
+            showScreen('screen-pilot');
+            document.getElementById('display-status-text').innerText = `STATUT : ARRÊT (${reason.label})`;
+            document.getElementById('display-status-text').style.color = "var(--warning)";
+        }
+
+        function closeDowntimeModal() {
+            showScreen('screen-pilot');
+        }
+
+        async function triggerStop() {
+            if(confirm("Confirmez-vous la fin de remplissage ?")) {
+                activeSession.conditioningStart = new Date();
+                showToast("Mode Conditionnement en cours...");
+                document.getElementById('display-status-text').innerText = "STATUT : CONDITIONNEMENT";
+                document.getElementById('display-status-text').style.color = "var(--purple)";
+                
+                // Petit délai simulé ou passage direct au bilan après finition carton
+                setTimeout(() => {
+                    showScreen('screen-bilan');
+                }, 1500);
+            }
+        }
+
+        async function submitBilan() {
+            const good = parseInt(document.getElementById('bilan-good').value) || 0;
+            const badBottles = parseInt(document.getElementById('bilan-bad-bottles').value) || 0;
+            const badCaps = parseInt(document.getElementById('bilan-bad-caps').value) || 0;
+            const remarks = document.getElementById('bilan-remarks').value;
+
+            // Enregistrement dans Supabase
+            const { error } = await _supabase.from('production_logs').insert({
+                machine_id: selectedMachine.id,
+                work_order_code: activeSession.of,
+                operators_team: activeSession.team.join(', '),
+                target_quantity: parseInt(activeSession.target),
+                good_quantity: good,
+                bad_bottles: badBottles,
+                bad_caps: badCaps,
+                remarks: remarks
+            });
+
+            if(error) {
+                alert("Erreur lors de l'enregistrement : " + error.message);
+            } else {
+                await _supabase.from('machines').update({ status: 'stopped', current_of: null }).eq('id', selectedMachine.id);
+                showToast("Bilan enregistré avec succès !");
+                goToWelcome();
+            }
+        }
+    </script>
+</body>
+</html>
